@@ -1,5 +1,4 @@
 import socket 
-import sys
 import struct 
 def get_mac_addr (raw_data) :
 	bytes=map('{:02x}'.format , raw_data)
@@ -29,6 +28,7 @@ def start_sniffing (filter_ip = None , filter_port=None) :
 			eth_proto = socket.htons(eth_proto)
 			print (f"destination : {dest} \nsource : {src} \nprotocol : {eth_proto}")
 			if eth_proto == 8:
+				
 				ip_header = raw_data[14:34]
 				# ! = Network Byte Order
 				# 8x = Skip the first 8 bytes (Version, TOS, Length, ID, Fragment)
@@ -40,6 +40,9 @@ def start_sniffing (filter_ip = None , filter_port=None) :
 				ttl, proto, src, target = struct.unpack('! 8x B B 2x 4s 4s', ip_header)
 				src_ip = socket.inet_ntoa(src)
 				target_ip = socket.inet_ntoa(target)
+				if filter_ip is not None :
+					if filter_ip != src_ip and target_ip != filter_ip:
+						continue
 				print(f"[+] IPv4 Packet | TTL: {ttl} | Protocol: {proto}")
 				print(f"    Source: {src_ip} -> Destination: {target_ip}")
 				print("-" * 50)
