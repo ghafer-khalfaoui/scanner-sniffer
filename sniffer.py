@@ -1,5 +1,6 @@
 import socket
 import struct
+from shared import open_ports
 from shared import scanned_ports
 
 
@@ -66,6 +67,7 @@ def start_sniffing(filter_ip=None):
 
         if flags & 0x12:
             state = "OPEN (SYN-ACK)"
+            open_ports.add(dst_port)
         elif flags & 0x04:
             state = "CLOSED (RST)"
         elif flags & 0x02:
