@@ -2,6 +2,8 @@ import socket
 import struct
 from shared import open_ports
 from shared import scanned_ports
+import time
+from shared import scan_activity 
 
 
 def get_mac_addr(raw_data):
@@ -25,7 +27,6 @@ def start_sniffing(filter_ip=None):
     while True:
         raw_data, _ = sniffer.recvfrom(65535)
 
-        # Ethernet
         dest_mac, src_mac, eth_proto = struct.unpack('! 6s 6s H', raw_data[:14])
         eth_proto = socket.htons(eth_proto)
 
@@ -68,6 +69,12 @@ def start_sniffing(filter_ip=None):
         if flags & 0x12:
             state = "OPEN (SYN-ACK)"
             open_ports.add(dst_port)
+            if now - ports["time"] > 5:
+                ports = {"ports": set([dst_port]), "time": now}
+            scan_activity[src_ip] = ports
+
+            if len(ports["ports"]) > 10:
+                print(f"[ALERT] Port scan detected from {src_ip}")
         elif flags & 0x04:
             state = "CLOSED (RST)"
         elif flags & 0x02:

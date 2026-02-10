@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Port Scanner</title>
+</head>
+<body>
+    <h2>Port Scanner</h2>
+
+    <form method="POST">
+        Target IP:
+        <input type="text" name="target" value="127.0.0.1"><br><br>
+
+        Port range:
+        <input type="number" name="start" value="1">
+        -
+        <input type="number" name="end" value="1024"><br><br>
+
+        <button type="submit">Scan</button>
+    </form>
+
+    <h3>Open Ports</h3>
+    <ul>
+        {% for p in ports %}
+            <li>{{ p }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
