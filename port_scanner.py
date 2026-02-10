@@ -2,9 +2,7 @@ import socket
 import concurrent.futures
 from shared import scanned_ports
 
-
 def scan_port(ip, port):
-   
     scanned_ports.add(port)
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -13,13 +11,14 @@ def scan_port(ip, port):
     try:
         result = sock.connect_ex((ip, port))
         if result == 0:
-            print(f"[SCANNER] OPEN {ip}:{port}")
-    except:
-        pass
-
-    sock.close()
+            print(f"[OPEN] {ip}:{port}")
+    except Exception as e:
+        print(f"[ERROR] {port} -> {e}")
+    finally:
+        sock.close()
 
 
 def runner(target, ports):
+    print(f"[*] Scanning {target}")
     with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
-        executor.map(scan_port, [target] * len(ports), ports)
+        executor.map(scan_port, [target]*len(ports), ports)

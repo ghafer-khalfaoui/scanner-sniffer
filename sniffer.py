@@ -1,18 +1,10 @@
 import socket
 import struct
-from shared import open_ports
-from shared import scanned_ports
 import time
-from shared import scan_activity 
-
-
-def get_mac_addr(raw_data):
-    bytes = map('{:02x}'.format, raw_data)
-    return ':'.join(bytes).upper()
-
+from shared import open_ports, scanned_ports, scan_activity
 
 def start_sniffing(filter_ip=None):
-    print("[*] Starting packet sniffer")
+    print("[*] Sniffer started")
 
     try:
         sniffer = socket.socket(
@@ -21,26 +13,25 @@ def start_sniffing(filter_ip=None):
             socket.ntohs(0x0003)
         )
     except PermissionError:
-        print("[-] Run as root (sudo)")
+        print("[-] Run with sudo")
         return
 
     while True:
         raw_data, _ = sniffer.recvfrom(65535)
-
-        dest_mac, src_mac, eth_proto = struct.unpack('! 6s 6s H', raw_data[:14])
-        eth_proto = socket.htons(eth_proto)
-
-        # IPv4 only
-        if eth_proto != 8:
+        if len(raw_data) < 34:
             continue
 
-        # IP header
+        _, _, eth_proto = struct.unpack("!6s6sH", raw_data[:14])
+
+        # IPv4 only
+        if eth_proto != 0x0800:
+            continue
+
         ihl = (raw_data[14] & 0x0F) * 4
         ip_header = raw_data[14:14 + ihl]
 
         ttl, proto, src, dst = struct.unpack(
-            '! 8x B B 2x 4s 4s',
-            ip_header
+            "!8xBB2x4s4s", ip_header
         )
 
         # TCP only
@@ -50,37 +41,31 @@ def start_sniffing(filter_ip=None):
         src_ip = socket.inet_ntoa(src)
         dst_ip = socket.inet_ntoa(dst)
 
-        if filter_ip:
-            if src_ip != filter_ip and dst_ip != filter_ip:
-                continue
+        if filter_ip and src_ip != filter_ip and dst_ip != filter_ip:
+            continue
 
-        
         tcp_start = 14 + ihl
         tcp_header = raw_data[tcp_start:tcp_start + 20]
 
-        src_port, dst_port = struct.unpack('!HH', tcp_header[:4])
+        src_port, dst_port = struct.unpack("!HH", tcp_header[:4])
+        flags = tcp_header[13]
 
-        
-        if src_port not in scanned_ports and dst_port not in scanned_ports:
+        if dst_port not in scanned_ports:
             continue
 
-        flags = tcp_header[13]
-        now = time()
-        if flags & 0x12:
-            state = "OPEN (SYN-ACK)"
+        now = time.time()
+        activity = scan_activity.get(src_ip, {"ports": set(), "time": now})
+
+        if flags & 0x12:  # SYN-ACK
             open_ports.add(dst_port)
-            if now - ports["time"] > 5:
-                ports = {"ports": set([dst_port]), "time": now}
-            scan_activity[src_ip] = ports
+            activity["ports"].add(dst_port)
 
-            if len(ports["ports"]) > 10:
-                print(f"[ALERT] Port scan detected from {src_ip}")
-        elif flags & 0x04:
-            state = "CLOSED (RST)"
-        elif flags & 0x02:
-            state = "SYN"
-        else:
-            state = "OTHER"
+        if now - activity["time"] > 5:
+            activity = {"ports": set([dst_port]), "time": now}
 
-        print(f"[SNIFFER] {state} | {src_ip}:{src_port} → {dst_ip}:{dst_port}")
+        scan_activity[src_ip] = activity
 
+        if len(activity["ports"]) > 10:
+            print(f"[ALERT] Port scan detected from {src_ip}")
+
+        print(f"[TCP] {src_ip}:{src_port} → {dst_ip}:{dst_port}")
