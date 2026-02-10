@@ -1,24 +1,26 @@
 import socket
 import concurrent.futures
-from shared import scanned_ports
+from shared import scanned_ports, open_ports
 
 def scan_port(ip, port):
+    # Register that we are scanning this port so sniffer watches it
     scanned_ports.add(port)
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(1)
+    sock.settimeout(1.5) # Slightly higher timeout for accuracy
 
     try:
         result = sock.connect_ex((ip, port))
         if result == 0:
-            print(f"[OPEN] {ip}:{port}")
-    except Exception as e:
-        print(f"[ERROR] {port} -> {e}")
+            open_ports.add(port) # Add to shared list
+            print(f"[SCANNER] {ip}:{port} is OPEN")
+    except Exception:
+        pass
     finally:
         sock.close()
 
-
 def runner(target, ports):
-    print(f"[*] Scanning {target}")
-    with concurrent.futures.ThreadPoolExecutor(max_workers=100) as executor:
+    print(f"[*] Scanning {target}...")
+    with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executor:
         executor.map(scan_port, [target]*len(ports), ports)
+    print("[*] Scan finished.")
