@@ -65,7 +65,7 @@ def start_sniffing(filter_ip=None):
             continue
 
         flags = tcp_header[13]
-
+        now = time()
         if flags & 0x12:
             state = "OPEN (SYN-ACK)"
             open_ports.add(dst_port)
@@ -83,3 +83,4 @@ def start_sniffing(filter_ip=None):
             state = "OTHER"
 
         print(f"[SNIFFER] {state} | {src_ip}:{src_port} → {dst_ip}:{dst_port}")
+
