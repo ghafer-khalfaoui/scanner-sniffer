@@ -29,7 +29,7 @@ def start_sniffing(filter_ip=None):
         eth_header = raw_data[:14]
         eth_proto = struct.unpack("!H", eth_header[12:14])[0]
 
-        # IPv4 only (0x0800)
+        # IPv4 only 
         if eth_proto != 0x0800:
             continue
 
@@ -42,11 +42,10 @@ def start_sniffing(filter_ip=None):
         src_ip = socket.inet_ntoa(ip_header[12:16])
         dst_ip = socket.inet_ntoa(ip_header[16:20])
 
-        # TCP only (Protocol 6)
+        # TCP only 
         if proto != 6:
             continue
 
-        # Filter IP if set
         if filter_ip and src_ip != filter_ip and dst_ip != filter_ip:
             continue
 
@@ -56,14 +55,15 @@ def start_sniffing(filter_ip=None):
         src_port, dst_port = struct.unpack("!HH", tcp_header[:4])
         flags = tcp_header[13]
 
-        # --- THE FIX IS HERE ---
-        # Only check ports we are actually scanning
+        
+        
         if dst_port not in scanned_ports and src_port not in scanned_ports:
             continue
 
-        # Check specifically for SYN-ACK (0x12) 
+        # Check specifically for SYN-ACK 
         # We assume if we receive a SYN-ACK, the src_port is the open one on the target
         if flags == 0x12:
             if src_port not in open_ports:
                 open_ports.add(src_port)
                 print(f"[SNIFFER CONFIRM] Port {src_port} is OPEN!")
+
