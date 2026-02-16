@@ -6,7 +6,7 @@ from shared import open_ports, scanned_ports
 
 app = Flask(__name__)
 
-# Start sniffer in background (Requires Sudo/Admin)
+
 t_sniff = threading.Thread(target=start_sniffing, daemon=True)
 t_sniff.start()
 
@@ -17,11 +17,11 @@ def index():
         start = int(request.form.get("start"))
         end = int(request.form.get("end"))
 
-        # Reset Previous Scans
+        
         open_ports.clear()
         scanned_ports.clear()
 
-        # Start Scanner Thread
+        
         t_scan = threading.Thread(
             target=runner,
             args=(target, range(start, end + 1)),
@@ -39,3 +39,4 @@ def results():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+
